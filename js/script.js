@@ -1,144 +1,25 @@
-var GOOGLE_ENDPOINT = "http://suggestqueries.google.com/complete/search";
-
-var BACKOFF_DELAY = 500; // in ms.
-var SEARCH_MAX_DEPTH = 3;
-
-var WEIGHTING = [
-    0.9, 0.5, 0.3
-];
-
-var OFFLINE_DEBUG_MODE = true;
-
-var __search_states = {
-    current_depth : 0,
-    current_spread_aggregate : 0,
-    final_struct : {}
-};
-
-var handleKeywordSearch = function(
-    response, parent_ref, structure_ref, depth, res_no
-) {
-    __search_states.current_depth = depth;
-
-    console.log("depth[" + depth + "]->response", response);
-    console.log("depth[" + depth + "]->tree", JSON.stringify(parent_ref));
-
-    structure_ref.word_result = response[0];
-    structure_ref.weight = WEIGHTING[res_no - 1];
-
-    structure_ref.weight_result_calculate = (
-        (parent_ref ? parent_ref.weight_result_calculate : 1)  *
-            structure_ref.weight
-    );
-
-    structure_ref.child = [];
-
-    // Go deeper?
-    if (depth < SEARCH_MAX_DEPTH) {
-        var next_depth = __search_states.current_depth + 1;
-
-        if (response[1] && response[1].length > 0  &&
-                response[1][0] === response[0]) {
-            // Pop first result if it contains the same value than query.
-            response[1].shift();
-        }
-
-        (response[1] || []).forEach(function(word, index) {
-            if (index < WEIGHTING.length) {
-                // Trim down previous value from this word
-                var word_proper = null;
-
-                if (depth > 1) {
-                    var parse_regx = new RegExp(
-                        "^" + structure_ref.word_result + "(.+)$", "i"
-                    );
-
-                    if (word.match(parse_regx)) {
-                        word_proper = (RegExp.$1 || "").trim();
-                    }
-                } else {
-                    word_proper = word;
-                }
-
-                if (word_proper !== null) {
-                    // Push in structure
-                    var child_struct_ref = {};
-
-                    structure_ref.child.push(child_struct_ref);
-
-                    // Lookup next (pass structure pointer)
-                    lookForRootKeyword(
-                        word_proper, structure_ref, child_struct_ref,
-                            next_depth, (index + 1)
-                    );
-                } else {
-                    console.warn(
-                        ["Previous value (" + structure_ref.word_result + ") ",
-                            "not found in word: " + word].join("")
-                    );
-                }
-            }
-        });
-    }
-};
-
-var handleKeywordSearchError = function(error) {
-    console.error("error", error);
-};
-
-var lookForRootKeyword = function(
-    query, parent_ref, structure_ref, depth, res_no
-) {
-    var backoff = (
-        BACKOFF_DELAY * (++__search_states.current_spread_aggregate)
-    );
-
-    setTimeout(function() {
-        var suggestEndpointURL = (
-            GOOGLE_ENDPOINT +
-                "?output=firefox&hl=en&q=" + encodeURIComponent(query) +
-                "&jsonp=?"
-        );
-
-        // Offline test mode
-        if (OFFLINE_DEBUG_MODE === true) {
-            handleKeywordSearch(
-                ["word",
-                    ["rep1", "rep2", "rep3", "rep4", "rep5", "rep6", "rep7"]
-                ],
-
-                parent_ref, structure_ref, (depth || 1), (res_no || 1)
-            );
-        } else {
-            $.getJSON(suggestEndpointURL)
-                .done(function(response) {
-                    handleKeywordSearch(
-                        response, parent_ref, structure_ref, (depth || 1)
-                    );
-                })
-                .fail(function(error) {
-                    handleKeywordSearchError(error);
-                });
-        }
-    }, backoff);
-};
-
-var lookupFinishedHandler = function(lookup_struct) {
-    console.info("Lookup finished:", lookup_struct);
-};
+var firstLevel = -1;
+var tree = -1;
+var choices;
+var result;
+var i;
 
 $(document).ready(function () {
+    choices = $("#choice");
+    result = $("#result").find("p");
     $("#input").keyup(function () {
-        var char = $(this).val();
+        var char = $(this).val().charAt(0);
         $(this).prop('disabled',true);
-        //write the sentence
-        $("#result").find("p").text(char);
+        startSearch(char);
+        result.text("Wait please....");
     });
 
     $("#btn-restart").click(function (e) {
         e.preventDefault();
+        choices.toggle();
         $("#input").val("").prop('disabled', false);
         $("#result").find("p").text("Go ahead, try again to write a letter!");
+        choices.empty();
     });
 
     // ----------------------------
@@ -147,6 +28,93 @@ $(document).ready(function () {
     // ----------------------------
 
     // Debug
-    lookForRootKeyword("a", null, __search_states.final_struct);
+    //lookForRootKeyword(char.charAt(0), null, __search_states.final_struct);
 });
 
+var firstStep = function (firstLevel) {
+    firstLevel.child.forEach(function (e, index) {
+        var _t =
+            '<div class="form-group col-md-8 text-xs-center offset-md-2">'+
+                '<input disabled type="button" value="'+ e.word_result +'" class="btn btn-danger" data-child="'+ index +'"/>'+
+            '</div>';
+        choices.append($(_t));
+    });
+    choices.toggle();
+    bindEvent();
+    timeout();
+};
+
+var bindEvent = function () {
+    choices.find("input:button").click(function (e) {
+        var index = $(this).data("child");
+        result.text($(this).val());
+        i = 0;
+        console.log(__search_states.final_struct.child[index]);
+        var treeResult = processTree(__search_states.final_struct.child[index]);
+        treeResult = createDict(treeResult).sort(function (a, b) {
+            return a[1] - b[1]
+        });
+        for (var k in treeResult){
+            console.log(treeResult[k].key);
+        }
+    });
+};
+
+function enableButtons() {
+    choices.find("input:button").each(function (index, e) {
+        $(e).removeClass("btn-danger").addClass("btn-success");
+        $(e).prop('disabled',false);
+    });
+    result.text("Please choose one option");
+}
+var timeout = function() {
+    setTimeout(function () {
+        if (checkFinish())
+            enableButtons();
+        else
+            timeout();
+    }, 300);
+};
+
+function processTree(tree) {
+    var dict = createDict(tree, dict);
+    recalculateWeight(dict);
+    placeResult(tree, dict, 0);
+    return tree;
+}
+
+function createDict(tree){
+    var dict = [];
+    tree.child.forEach(function (ele, index) {
+        dict.push({
+            key: ele.word_result,
+            value: ele.weight_result_calculate
+        });
+        if (ele.child && ele.child.length>0 && ele.child[0].child != undefined){
+            createDict(ele, dict);
+        }
+    });
+    return dict;
+}
+
+function recalculateWeight(dict) {
+    for (var i in dict) {
+        var elem = dict[i];
+        for (var j in dict){
+            var search = dict[j];
+            if (i!=j && elem.key === search.key){
+                elem.value = elem.value +  (1-elem.value) * search.value
+            }
+        }
+    }
+}
+
+function placeResult(tree, dict){
+    tree.child.forEach(function (ele, index) {
+        ele.weight_result_calculate = dict[i].value;
+        i++;
+        if (ele.child && ele.child.length>0 && ele.child[0].child != undefined){
+            placeResult(ele, dict, i);
+        }
+    });
+}

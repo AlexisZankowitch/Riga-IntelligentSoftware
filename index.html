@@ -5,13 +5,15 @@
     <title>IntelligentSoftware</title>
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <script type="application/javascript" src="js/jquery.min.js"></script>
+    <script type="application/javascript" src="js/debug.js"></script>
+    <script type="application/javascript" src="js/databasor.js"></script>
     <script type="application/javascript" src="js/script.js"></script>
 </head>
 <body>
-    <div class="container-fluid">
+    <div class="container-fluid text-xs-center">
         <div class="row">
             <div class="col-xs-10 offset-xs-1" style="margin-top: 1em;">
-                <div class="text-sm-center">
+                <div>
                     <h2>
                         Weight Calculator Searchbox
                     </h2>
@@ -25,6 +27,8 @@
                 </div>
             </div>
         </div>
+        <div id="choice" class="row" style="display: none;">
+        </div>
         <div id="result" class="row">
             <div class="col-xs-10 offset-xs-1">
                 <p>
@@ -34,9 +38,7 @@
         </div>
         <div id="restart" class="row">
             <div class="col-xs-8 offset-xs-2 text-xs-center">
-                <button id="btn-restart" type="button" class="btn btn-primary">
-                    Reset
-                </button>
+                <input type="button" value="Reset" id="btn-restart" class="btn btn-primary"/>
             </div>
         </div>
     </div>
