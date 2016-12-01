@@ -67,7 +67,7 @@ var bindEvent = function () {
         var counter = 1;
         for (var ind in myDict){
             if (counter < SEARCH_MAX_DEPTH && (previous.indexOf(myDict[ind].key)==-1)){
-                previous = myDict[ind].key;
+                previous.push(myDict[ind].key);
                 result.text(result.text() + " " + myDict[ind].key);
                 counter++;
             }
