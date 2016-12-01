@@ -1,10 +1,12 @@
 var GOOGLE_ENDPOINT = "http://suggestqueries.google.com/complete/search";
 
-var BACKOFF_DELAY = 500; // in ms.
+var BACKOFF_DELAY = 100; // in ms.
 var SEARCH_MAX_DEPTH = 5;
 
 var check_end;
 var send;
+var sum = 0;
+var total = 0;
 
 var WEIGHTING = [
     0.9, 0.5, 0.3
@@ -23,6 +25,9 @@ var handleKeywordSearch = function(
 ) {
     __search_states.current_depth = depth;
     counterLevel[depth-1]++;
+    sum = counterLevel.reduce(function(pv, cv) { return pv + cv; }, 0);
+
+    $("#search-progress-bar").css("width",sum*100/total+"%");
 
     /*console.log("depth[" + depth + "]->response", response);
     console.log("depth[" + depth + "]->tree", parent_ref);*/
@@ -158,6 +163,12 @@ var checkFinish = function () {
 
 var startSearch = function (char) {
     resetState();
+    var _t =
+        '<div class="progress">' +
+            '<div id="search-progress-bar" class="progress-bar progress-bar-info">'+
+            '</div>'+
+        '</div>';
+    $("#progress").append($(_t));
     lookForRootKeyword(char, null, __search_states.final_struct);
 };
 
@@ -170,10 +181,16 @@ var resetState = function () {
     check_end = 0;
     send = false;
     counterLevel = [0,0,0,0,0];
+    sum = 0;
+    total = 0;
     __search_states = {
         current_depth : 0,
         current_spread_aggregate : 0,
         final_struct : {}
     };
     search = true;
+    for (var o=0; o<SEARCH_MAX_DEPTH; o++){
+        total += Math.pow(3,o);
+        console.log(total);
+    }
 };

@@ -54,13 +54,13 @@ $(document).ready(function () {
 var firstStep = function () {
     firstLevel.child.forEach(function (e, index) {
         var _t =
-            '<div class="form-group col-md-8 text-xs-center offset-md-2">'+
+            '<div class="form-group col-md-8 text-center col-md-offset-2">'+
                 '<input disabled type="button" value="'+ e.word_result +'" class="btn btn-danger" data-child="'+ index +'"/>'+
             '</div>';
         choices.append($(_t));
     });
     choices.toggle();
-    result.text("Database creation...wait please");
+    result.text("Database creation...Please wait");
     bindEvent();
     timeout(checkFinish, enableButtons);
 };
@@ -77,10 +77,10 @@ var bindEvent = function () {
         myDict.sort(function (a, b) {
             return b.value - a.value
         });
-        var previous = "";
+        var previous = [];
         var counter = 1;
         for (var ind in myDict){
-            if (counter < SEARCH_MAX_DEPTH && myDict[ind].key != previous){
+            if (counter < SEARCH_MAX_DEPTH && previous.contains(myDict[ind].key)){
                 previous = myDict[ind].key;
                 result.text(result.text() + " " + myDict[ind].key);
                 counter++;
