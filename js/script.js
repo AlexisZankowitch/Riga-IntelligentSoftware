@@ -70,7 +70,7 @@ var bindEvent = function () {
         result.text(" ");
         var index = $(this).data("child");
         result.text($(this).val());
-        var treeResult = __search_states.final_struct.child[index];
+        var treeResult = JSON.parse(JSON.stringify(__search_states.final_struct.child[index]));
         processTree(treeResult);
         var myDict = [];
         createDict(treeResult, myDict);
