@@ -6,8 +6,6 @@ var iDict;
 var dict = [];
 
 
-var script_debug = false;
-
 $(document).ready(function () {
     choices = $("#choice");
     result = $("#result").find("p");
@@ -15,19 +13,7 @@ $(document).ready(function () {
         var char = $(this).val().charAt(0);
         $(this).prop('disabled',true);
         $("#depth").prop('disabled', true);
-        if(!script_debug)
-            startSearch(char);
-        else {
-            console.log(myjson.child[0]);
-            var treeResult = processTree(myjson.child[0]);
-            var myDict = [];
-            createDict(treeResult, myDict);
-            console.log(myDict);
-            dict.sort(function (a, b) {
-                return b.value - a.value
-            });
-            console.log(dict);
-        }
+        startSearch(char);
         result.text("Wait please....");
         timeout(firstStage, firstStep);
     });
@@ -80,7 +66,7 @@ var bindEvent = function () {
         var previous = [];
         var counter = 1;
         for (var ind in myDict){
-            if (counter < SEARCH_MAX_DEPTH && previous.contains(myDict[ind].key)){
+            if (counter < SEARCH_MAX_DEPTH && (previous.indexOf(myDict[ind].key)==-1)){
                 previous = myDict[ind].key;
                 result.text(result.text() + " " + myDict[ind].key);
                 counter++;
