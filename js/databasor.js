@@ -1,6 +1,6 @@
 var GOOGLE_ENDPOINT = "http://suggestqueries.google.com/complete/search";
 
-var BACKOFF_DELAY = 100; // in ms.
+var BACKOFF_DELAY = 500; // in ms.
 var SEARCH_MAX_DEPTH = 5;
 
 var check_end;
@@ -28,7 +28,7 @@ var handleKeywordSearch = function(
     console.log("depth[" + depth + "]->tree", parent_ref);*/
 
     structure_ref.word_result = (response[0] || "").trim();
-    structure_ref.weight = (parent_ref)?WEIGHTING[res_no - 1]:1;
+    structure_ref.weight = (parent_ref)?WEIGHTING[res_no-1]:1;
 
     structure_ref.weight_result_calculate = (
         (parent_ref ? parent_ref.weight_result_calculate : 1)  *
@@ -71,9 +71,8 @@ var handleKeywordSearch = function(
                 if (word_proper !== null) {
                     console.info(
                         "Sanitized: " + structure_ref.word_result +
-                            "->" + word_proper
+                        "->" + word_proper
                     );
-
                     // Push in structure
                     var child_struct_ref = {};
 
@@ -82,7 +81,7 @@ var handleKeywordSearch = function(
                     // Lookup next (pass structure pointer)
                     lookForRootKeyword(
                         word_proper, structure_ref, child_struct_ref,
-                        next_depth, (parent_ref)?(index + 1):0
+                        next_depth, index + 1
                     );
                 } else {
                     console.warn(
@@ -92,17 +91,20 @@ var handleKeywordSearch = function(
                 }
             }
         });
-    }else {
-        check_end = check_end + 1;
-        console.log(counterLevel);
-        //console.log(check_end);
     }
-    if (check_end == 4)
-        firstStep(__search_states.final_struct);
 };
 
 var handleKeywordSearchError = function(error) {
     console.error("error", error);
+    __search_states.final_struct = myjson;
+    result.text("Sorry Google banished you....");
+    var _t = '<input type="button" value="Use JSON" class="btn btn-danger" id ="use-json"/>';
+    $("#restart").find("div").append($(_t));
+    $('#use-json').click(function (e) {
+        e.preventDefault();
+        counterLevel[SEARCH_MAX_DEPTH-1] = Math.pow(3, SEARCH_MAX_DEPTH-1);
+        firstStep();
+    })
 };
 
 var lookForRootKeyword = function(
@@ -145,8 +147,13 @@ var lookupFinishedHandler = function(lookup_struct) {
     console.info("Lookup finished:", lookup_struct);
 };
 
+var firstStage = function () {
+    firstLevel = __search_states.final_struct;
+    return (counterLevel[1] == 3 )
+};
+
 var checkFinish = function () {
-    return (check_end == Math.pow(3, SEARCH_MAX_DEPTH))
+    return (counterLevel[SEARCH_MAX_DEPTH-1] == Math.pow(3, SEARCH_MAX_DEPTH-1) )
 };
 
 var startSearch = function (char) {
@@ -162,6 +169,7 @@ var resetState = function () {
     SEARCH_MAX_DEPTH = $("#depth").val();
     check_end = 0;
     send = false;
+    counterLevel = [0,0,0,0,0];
     __search_states = {
         current_depth : 0,
         current_spread_aggregate : 0,

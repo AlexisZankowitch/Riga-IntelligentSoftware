@@ -2,7 +2,11 @@ var firstLevel = -1;
 var tree = -1;
 var choices;
 var result;
-var i;
+var iDict;
+var dict = [];
+
+
+var script_debug = false;
 
 $(document).ready(function () {
     choices = $("#choice");
@@ -10,8 +14,22 @@ $(document).ready(function () {
     $("#input").keyup(function () {
         var char = $(this).val().charAt(0);
         $(this).prop('disabled',true);
-        startSearch(char);
+        $("#depth").prop('disabled', true);
+        if(!script_debug)
+            startSearch(char);
+        else {
+            console.log(myjson.child[0]);
+            var treeResult = processTree(myjson.child[0]);
+            var myDict = [];
+            createDict(treeResult, myDict);
+            console.log(myDict);
+            dict.sort(function (a, b) {
+                return b.value - a.value
+            });
+            console.log(dict);
+        }
         result.text("Wait please....");
+        timeout(firstStage, firstStep);
     });
 
     $("#btn-restart").click(function (e) {
@@ -19,6 +37,7 @@ $(document).ready(function () {
         stopSearch();
         choices.toggle();
         $("#input").val("").prop('disabled', false);
+        $("#depth").prop('disabled', false);
         $("#result").find("p").text("Go ahead, try again to write a letter!");
         choices.empty();
     });
@@ -32,7 +51,7 @@ $(document).ready(function () {
     //lookForRootKeyword(char.charAt(0), null, __search_states.final_struct);
 });
 
-var firstStep = function (firstLevel) {
+var firstStep = function () {
     firstLevel.child.forEach(function (e, index) {
         var _t =
             '<div class="form-group col-md-8 text-xs-center offset-md-2">'+
@@ -43,50 +62,59 @@ var firstStep = function (firstLevel) {
     choices.toggle();
     result.text("Database creation...wait please");
     bindEvent();
-    timeout();
+    timeout(checkFinish, enableButtons);
 };
 
 var bindEvent = function () {
     choices.find("input:button").click(function (e) {
+        result.text(" ");
         var index = $(this).data("child");
         result.text($(this).val());
-        i = 0;
-        console.log(__search_states.final_struct.child[index]);
-        var treeResult = processTree(__search_states.final_struct.child[index]);
-        treeResult = createDict(treeResult).sort(function (a, b) {
-            return a[1] - b[1]
+        var treeResult = __search_states.final_struct.child[index];
+        processTree(treeResult);
+        var myDict = [];
+        createDict(treeResult, myDict);
+        myDict.sort(function (a, b) {
+            return b.value - a.value
         });
-        for (var k in treeResult){
-            console.log(treeResult[k].key);
+        var previous = "";
+        var counter = 1;
+        for (var ind in myDict){
+            if (counter < SEARCH_MAX_DEPTH && myDict[ind].key != previous){
+                previous = myDict[ind].key;
+                result.text(result.text() + " " + myDict[ind].key);
+                counter++;
+            }
         }
     });
 };
 
 function enableButtons() {
+    console.log(__search_states.final_struct);
     choices.find("input:button").each(function (index, e) {
         $(e).removeClass("btn-danger").addClass("btn-success");
         $(e).prop('disabled',false);
     });
     result.text("Please choose one option");
 }
-var timeout = function() {
+var timeout = function(check, callback) {
     setTimeout(function () {
-        if (checkFinish())
-            enableButtons();
+        if (check())
+            callback();
         else
-            timeout();
+            timeout(check, callback);
     }, 300);
 };
 
 function processTree(tree) {
-    var dict = createDict(tree, dict);
-    recalculateWeight(dict);
-    placeResult(tree, dict, 0);
-    return tree;
+    dict = [];
+    createDict(tree, dict);
+    recalculateWeight();
+    iDict = 0;
+    placeResult(tree);
 }
 
-function createDict(tree){
-    var dict = [];
+function createDict(tree, dict){
     tree.child.forEach(function (ele, index) {
         dict.push({
             key: ele.word_result,
@@ -96,10 +124,9 @@ function createDict(tree){
             createDict(ele, dict);
         }
     });
-    return dict;
 }
 
-function recalculateWeight(dict) {
+function recalculateWeight() {
     for (var i in dict) {
         var elem = dict[i];
         for (var j in dict){
@@ -111,12 +138,12 @@ function recalculateWeight(dict) {
     }
 }
 
-function placeResult(tree, dict){
+function placeResult(tree){
     tree.child.forEach(function (ele, index) {
-        ele.weight_result_calculate = dict[i].value;
-        i++;
+        ele.weight_result_calculate = dict[iDict].value;
+        iDict++;
         if (ele.child && ele.child.length>0 && ele.child[0].child != undefined){
-            placeResult(ele, dict, i);
+            placeResult(ele, dict);
         }
     });
 }
