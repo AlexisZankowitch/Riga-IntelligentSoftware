@@ -27,7 +27,7 @@ var handleKeywordSearch = function(
     /*console.log("depth[" + depth + "]->response", response);
     console.log("depth[" + depth + "]->tree", parent_ref);*/
 
-    structure_ref.word_result = response[0];
+    structure_ref.word_result = (response[0] || "").trim();
     structure_ref.weight = (parent_ref)?WEIGHTING[res_no - 1]:1;
 
     structure_ref.weight_result_calculate = (
@@ -51,17 +51,29 @@ var handleKeywordSearch = function(
                 // Trim down previous value from this word
                 var word_proper = null;
 
-                if (depth > 1) {
+                word = (word  || "").trim();
+
+                if (depth > 1 && word !== structure_ref.word_result) {
                     var parse_regx = new RegExp(
-                        "^" + structure_ref.word_result+ "(.+)$", "i"
+                        "^" + structure_ref.word_result +
+                            "[\\s]+([\\S]+.*)$", "i"
                     );
                     if (word.match(parse_regx)) {
                         word_proper = (RegExp.$1 || "").trim();
+                    } else {
+                        // Fallback.
+                        word_proper = word;
                     }
                 } else {
                     word_proper = word;
                 }
+
                 if (word_proper !== null) {
+                    console.info(
+                        "Sanitized: " + structure_ref.word_result +
+                            "->" + word_proper
+                    );
+
                     // Push in structure
                     var child_struct_ref = {};
 
