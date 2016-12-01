@@ -22,8 +22,17 @@
         </div>
         <div id="query" class="row">
             <div class="col-xs-8 offset-xs-2">
-                <div class="form-group">
-                    <input type="text" class="form-control" id="input" />
+                <div class="form-group col-sm-4 offset-sm-2">
+                    <label for="input">Character</label>
+                    <input name="char-root" type="text" class="form-control" id="input" />
+                </div>
+                <div class="form-group col-sm-4">
+                    <label for="depth">Depth</label>
+                    <select name="depth" class="form-control" id="depth" >
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                    </select>
                 </div>
             </div>
         </div>

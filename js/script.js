@@ -16,6 +16,7 @@ $(document).ready(function () {
 
     $("#btn-restart").click(function (e) {
         e.preventDefault();
+        stopSearch();
         choices.toggle();
         $("#input").val("").prop('disabled', false);
         $("#result").find("p").text("Go ahead, try again to write a letter!");
@@ -40,6 +41,7 @@ var firstStep = function (firstLevel) {
         choices.append($(_t));
     });
     choices.toggle();
+    result.text("Database creation...wait please");
     bindEvent();
     timeout();
 };

@@ -1,9 +1,8 @@
 var GOOGLE_ENDPOINT = "http://suggestqueries.google.com/complete/search";
 
-var BACKOFF_DELAY = 500; // in ms.
+var BACKOFF_DELAY = 100; // in ms.
 var SEARCH_MAX_DEPTH = 5;
 
-var check_send;
 var check_end;
 var send;
 
@@ -11,18 +10,19 @@ var WEIGHTING = [
     0.9, 0.5, 0.3
 ];
 
-var OFFLINE_DEBUG_MODE = false;
+//DEBUG
+var counterLevel = [0,0,0,0,0];
 
-var __search_states = {
-    current_depth : 0,
-    current_spread_aggregate : 0,
-    final_struct : {}
-};
+var OFFLINE_DEBUG_MODE = false;
+var search = true;
+
+var __search_states;
 
 var handleKeywordSearch = function(
     response, parent_ref, structure_ref, depth, res_no
 ) {
     __search_states.current_depth = depth;
+    counterLevel[depth-1]++;
 
     /*console.log("depth[" + depth + "]->response", response);
     console.log("depth[" + depth + "]->tree", parent_ref);*/
@@ -38,7 +38,7 @@ var handleKeywordSearch = function(
     structure_ref.child = [];
 
     // Go deeper?
-    if (depth < SEARCH_MAX_DEPTH) {
+    if (depth < SEARCH_MAX_DEPTH ) {
         var next_depth = __search_states.current_depth + 1;
 
         if (response[1] && response[1].length > 0  &&
@@ -61,7 +61,6 @@ var handleKeywordSearch = function(
                 } else {
                     word_proper = word;
                 }
-
                 if (word_proper !== null) {
                     // Push in structure
                     var child_struct_ref = {};
@@ -71,7 +70,7 @@ var handleKeywordSearch = function(
                     // Lookup next (pass structure pointer)
                     lookForRootKeyword(
                         word_proper, structure_ref, child_struct_ref,
-                        next_depth, (index + 1)
+                        next_depth, (parent_ref)?(index + 1):0
                     );
                 } else {
                     console.warn(
@@ -81,12 +80,12 @@ var handleKeywordSearch = function(
                 }
             }
         });
-    }else{
-        check_end++;
-        console.log(check_end)
+    }else {
+        check_end = check_end + 1;
+        console.log(counterLevel);
+        //console.log(check_end);
     }
-    check_send = check_send + 1;
-    if (check_send == 4)
+    if (check_end == 4)
         firstStep(__search_states.final_struct);
 };
 
@@ -139,8 +138,22 @@ var checkFinish = function () {
 };
 
 var startSearch = function (char) {
-    check_end = 0;
-    check_send = 0;
-    send = false;
+    resetState();
     lookForRootKeyword(char, null, __search_states.final_struct);
+};
+
+var stopSearch = function () {
+    search = false;
+};
+
+var resetState = function () {
+    SEARCH_MAX_DEPTH = $("#depth").val();
+    check_end = 0;
+    send = false;
+    __search_states = {
+        current_depth : 0,
+        current_spread_aggregate : 0,
+        final_struct : {}
+    };
+    search = true;
 };
